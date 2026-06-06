@@ -1,7 +1,13 @@
 // Microsearch — main app logic
-const STORAGE_KEY = 'microrearch_data_v1';
 const USERS_KEY = 'microrearch_users_v1';
 const SESSION_KEY = 'microrearch_session_v1';
+const LEGACY_DATA_KEY = 'microrearch_data_v1'; // ข้อมูลรุ่นเก่าที่แชร์รวมทุก user
+
+// ข้อมูลเชื้อแยกตามผู้ใช้ที่ล็อกอินอยู่ (ไม่ปนกันระหว่างบัญชี)
+function dataKey() {
+  const s = getSession();
+  return 'microsearch_data_v1::' + (s && s.username ? s.username : 'guest');
+}
 
 // ============ AUTH ============
 async function hashPassword(pw) {
@@ -143,7 +149,9 @@ const $$ = (sel) => document.querySelectorAll(sel);
 function loadData() {
   let stored = [];
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    let raw = localStorage.getItem(dataKey());
+    // ย้ายข้อมูลรุ่นเก่า (key เดียวแชร์ทุกคน) เข้ามาเป็นของ user คนนี้ครั้งแรก
+    if (!raw) raw = localStorage.getItem(LEGACY_DATA_KEY);
     if (raw) stored = JSON.parse(raw);
   } catch (e) { console.warn('Load failed', e); }
 
@@ -161,7 +169,7 @@ function loadData() {
 }
 function saveData() {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.microbes));
+    localStorage.setItem(dataKey(), JSON.stringify(state.microbes));
   } catch (e) {
     toast('บันทึกไม่สำเร็จ — พื้นที่อาจเต็ม', 'error');
   }
@@ -298,10 +306,11 @@ function renderGrid() {
       .map((c) => `<span class="tag">${escapeHtml(categoryLabel(c))}</span>`)
       .join('');
 
+    const safeIcon = escapeHtml(m.icon || '🦠');
     const imgHtml = m.image
       ? `<img src="${escapeHtml(m.image)}" alt="${escapeHtml(m.name)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='grid';">
-         <div class="fallback" style="display:none">${m.icon || '🦠'}</div>`
-      : `<div class="fallback">${m.icon || '🦠'}</div>`;
+         <div class="fallback" style="display:none">${safeIcon}</div>`
+      : `<div class="fallback">${safeIcon}</div>`;
 
     card.innerHTML = `
       <div class="card-img ${m.kingdom}">
@@ -346,9 +355,10 @@ function openView(id) {
     .map((c) => `<span class="tag">${escapeHtml(categoryLabel(c))}</span>`)
     .join('');
 
+  const safeIcon = escapeHtml(m.icon || '🦠');
   const imgHtml = m.image
-    ? `<img src="${escapeHtml(m.image)}" alt="${escapeHtml(m.name)}" onerror="this.outerHTML='<span>${m.icon || '🦠'}</span>'">`
-    : (m.icon || '🦠');
+    ? `<img src="${escapeHtml(m.image)}" alt="${escapeHtml(m.name)}" onerror="this.outerHTML='<span>${safeIcon}</span>'">`
+    : safeIcon;
 
   const sections = [
     ['ลักษณะของเชื้อ', m.characteristics],
@@ -416,6 +426,7 @@ function openEdit(id = null) {
   form.pathogenesis.value = m?.pathogenesis || '';
   form.vector.value = m?.vector || '';
   form.additional.value = m?.additional || '';
+  form.references.value = (m?.references || []).join('\n');
   $('imageUrl').value = m?.image || '';
 
   const preview = $('imgPreview');
@@ -462,6 +473,7 @@ function collectFormData() {
     pathogenesis: form.pathogenesis.value.trim(),
     vector: form.vector.value.trim(),
     additional: form.additional.value.trim(),
+    references: form.references.value.split('\n').map((s) => s.trim()).filter(Boolean),
   };
 }
 
@@ -521,21 +533,57 @@ function exportData() {
 }
 
 // ============ IMAGE UPLOAD ============
+// ย่อรูปด้วย canvas (max 800px, JPEG q0.82) ก่อนเก็บ — ลดขนาดใน localStorage มาก
 function handleImageUpload(file) {
   if (!file) return;
-  if (file.size > 2 * 1024 * 1024) {
-    toast('ไฟล์ใหญ่เกิน 2MB', 'error');
-    return;
-  }
+  if (!file.type.startsWith('image/')) { toast('ไฟล์ไม่ใช่รูปภาพ', 'error'); return; }
+  if (file.size > 15 * 1024 * 1024) { toast('ไฟล์ใหญ่เกินไป (เกิน 15MB)', 'error'); return; }
   const reader = new FileReader();
   reader.onload = (e) => {
-    const dataUrl = e.target.result;
-    $('imageUrl').value = dataUrl;
-    const preview = $('imgPreview');
-    preview.src = dataUrl;
-    preview.hidden = false;
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 800;
+      let { width, height } = img;
+      if (width > MAX || height > MAX) {
+        const scale = Math.min(MAX / width, MAX / height);
+        width = Math.round(width * scale);
+        height = Math.round(height * scale);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+      $('imageUrl').value = dataUrl;
+      const preview = $('imgPreview');
+      preview.src = dataUrl;
+      preview.hidden = false;
+    };
+    img.onerror = () => toast('โหลดรูปไม่สำเร็จ', 'error');
+    img.src = e.target.result;
   };
   reader.readAsDataURL(file);
+}
+
+// ============ IMPORT ============
+function handleImport(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!Array.isArray(data)) throw new Error('format');
+      const byId = new Map(state.microbes.map((m) => [m.id, m]));
+      data.forEach((m) => { if (m && m.id) byId.set(m.id, m); });
+      state.microbes = Array.from(byId.values());
+      saveData();
+      render();
+      toast(`นำเข้า ${data.length} รายการแล้ว ✓`, 'success');
+    } catch {
+      toast('ไฟล์ไม่ถูกต้อง', 'error');
+    }
+  };
+  reader.readAsText(file);
 }
 
 // ============ MAIN RENDER ============
@@ -570,6 +618,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   $('addBtn').onclick = () => openEdit(null);
   $('editForm').addEventListener('submit', saveMicrobe);
   $('deleteBtn').onclick = () => state.editingId && deleteMicrobe(state.editingId);
+
+  $('exportBtn').onclick = exportData;
+  $('importBtn').onclick = () => $('importInput').click();
+  $('importInput').addEventListener('change', (e) => {
+    handleImport(e.target.files[0]);
+    e.target.value = ''; // ให้นำเข้าไฟล์เดิมซ้ำได้
+  });
 
   $('kingdomSelect').addEventListener('change', (e) => {
     const cats = Array.from($('categoriesBox').querySelectorAll('input:checked')).map((i) => i.value);

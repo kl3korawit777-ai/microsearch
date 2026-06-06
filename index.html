@@ -75,6 +75,9 @@
 
     <div class="header-actions">
       <button class="btn btn-primary" id="addBtn">+ เพิ่มเชื้อ</button>
+      <button class="btn btn-ghost" id="exportBtn" title="สำรองข้อมูลเป็นไฟล์ JSON">⬇ ส่งออก</button>
+      <button class="btn btn-ghost" id="importBtn" title="นำเข้าข้อมูลจากไฟล์ JSON">⬆ นำเข้า</button>
+      <input type="file" id="importInput" accept="application/json,.json" hidden />
       <div class="user-badge" id="userBadge">
         <div class="user-avatar" id="userAvatar">?</div>
         <span id="userName">guest</span>
@@ -175,6 +178,10 @@
           <div class="form-field">
             <label>ข้อมูลเพิ่มเติม</label>
             <textarea name="additional" rows="2" placeholder="การวินิจฉัย การรักษา การป้องกัน..."></textarea>
+          </div>
+          <div class="form-field">
+            <label>เอกสารอ้างอิง <span style="color:var(--muted);font-weight:400">(หนึ่งรายการต่อบรรทัด)</span></label>
+            <textarea name="references" rows="3" placeholder="เช่น Murray PR. Medical Microbiology. 9th ed. Elsevier; 2021.&#10;https://www.cdc.gov/..."></textarea>
           </div>
 
           <div class="form-footer">
