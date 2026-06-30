@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Microsearch Admin</title>
+<meta name="robots" content="noindex,nofollow" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../styles.css" />
+<link rel="stylesheet" href="admin.css" />
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen" class="auth-screen">
+  <div class="auth-card">
+    <h1>Microsearch Admin</h1>
+    <p class="auth-hint">เข้าระบบเพื่อจัดการข้อมูลเชื้อ</p>
+    <form id="loginForm" class="auth-form">
+      <label>Email
+        <input id="loginEmail" type="email" required autocomplete="email" />
+      </label>
+      <label>Password
+        <input id="loginPassword" type="password" required autocomplete="current-password" />
+      </label>
+      <div id="loginError" class="auth-error" hidden></div>
+      <button type="submit">เข้าสู่ระบบ</button>
+    </form>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="adminApp" hidden>
+  <header class="site-header">
+    <div class="brand">
+      <div class="logo">M</div>
+      <div>
+        <h1>Microsearch <span style="color:var(--accent);font-size:.7em">· Admin</span></h1>
+        <p class="tagline" id="userBadge"></p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button id="addBtn" class="primary-btn">+ เพิ่มเชื้อ</button>
+      <button id="publishBtn" class="primary-btn" title="ดาวน์โหลด data.js สำหรับ deploy">↑ Publish</button>
+      <button id="logoutBtn" class="ghost-btn">ออกจากระบบ</button>
+    </div>
+  </header>
+
+  <main class="admin-main">
+    <div class="admin-toolbar">
+      <input id="search" type="search" placeholder="ค้นหา..." />
+      <select id="filterKingdom">
+        <option value="">ทุก kingdom</option>
+        <option value="bacteria">แบคทีเรีย</option>
+        <option value="virus">ไวรัส</option>
+        <option value="parasite">ปรสิต</option>
+      </select>
+      <span class="search-count" id="searchCount"></span>
+    </div>
+
+    <div id="emptyState" class="empty" hidden>
+      <div class="empty-icon">📭</div>
+      <p>ยังไม่มีข้อมูลใน Supabase</p>
+      <button id="seedBtn" class="primary-btn" style="margin-top:12px">⬇ Seed จาก data.js (ครั้งแรกเท่านั้น)</button>
+    </div>
+
+    <table id="microbeTable" class="admin-table" hidden>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Thai</th>
+          <th>Kingdom</th>
+          <th>Categories</th>
+          <th>Updated</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="microbeBody"></tbody>
+    </table>
+  </main>
+</div>
+
+<!-- EDIT MODAL -->
+<div id="editModal" class="modal" hidden onclick="if(event.target===this)closeModal('editModal')">
+  <div class="modal-card edit-card">
+    <button type="button" class="close-btn" onclick="closeModal('editModal')" aria-label="ปิด">×</button>
+    <h2 id="editTitle">เพิ่มเชื้อ</h2>
+    <form id="editForm" class="edit-form">
+      <div class="row-2">
+        <label>ID (slug, แก้ไม่ได้หลังบันทึก)
+          <input name="id" required pattern="[a-z0-9\-]+" placeholder="staph-aureus" />
+        </label>
+        <label>Kingdom
+          <select name="kingdom" id="kingdomSelect" required>
+            <option value="bacteria">bacteria</option>
+            <option value="virus">virus</option>
+            <option value="parasite">parasite</option>
+          </select>
+        </label>
+      </div>
+      <div class="row-2">
+        <label>Name (Latin)
+          <input name="name" required placeholder="Staphylococcus aureus" />
+        </label>
+        <label>Thai
+          <input name="thai" placeholder="สแตฟิโลค็อกคัส ออเรียส" />
+        </label>
+      </div>
+      <div class="row-2">
+        <label>Icon (emoji)
+          <input name="icon" maxlength="4" placeholder="🦠" />
+        </label>
+        <label>Image (URL หรือ images/file.jpg)
+          <input name="image" placeholder="images/S.aureus.jpg" />
+        </label>
+      </div>
+
+      <label>Categories
+        <div id="categoryCheckboxes" class="cat-checks"></div>
+      </label>
+
+      <label>ลักษณะของเชื้อ
+        <textarea name="characteristics" rows="6"></textarea>
+      </label>
+      <label>การก่อโรค
+        <textarea name="pathogenesis" rows="6"></textarea>
+      </label>
+      <label>พาหะ / การติดต่อ
+        <textarea name="vector" rows="5"></textarea>
+      </label>
+      <label>ข้อมูลเพิ่มเติม
+        <textarea name="additional" rows="5"></textarea>
+      </label>
+      <label>เอกสารอ้างอิง (1 บรรทัด = 1 รายการ)
+        <textarea name="refs" rows="5" placeholder="Murray PR, Rosenthal KS. Medical Microbiology. 9th ed. Elsevier; 2021."></textarea>
+      </label>
+
+      <div class="form-actions">
+        <button type="button" id="deleteBtn" class="danger-btn" hidden>ลบ</button>
+        <button type="submit" class="primary-btn">บันทึก</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="toast" class="toast" hidden></div>
+
+<!-- data.js for seeding only -->
+<script src="../data.js"></script>
+<!-- Supabase client (CDN, ESM) -->
+<script type="module" src="admin.js"></script>
+</body>
+</html>
