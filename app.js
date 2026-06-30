@@ -171,7 +171,7 @@ function openView(id) {
 
   const safeIcon = escapeHtml(m.icon || '🦠');
   const imgHtml = m.image
-    ? `<img src="${escapeHtml(m.image)}" alt="${escapeHtml(m.name)}" decoding="async" onerror="this.outerHTML='<span>${safeIcon}</span>'">`
+    ? `<img src="${escapeHtml(m.image)}" alt="${escapeHtml(m.name)}" loading="lazy" decoding="async" onerror="this.outerHTML='<span>${safeIcon}</span>'">`
     : safeIcon;
 
   const sections = [
