@@ -10,7 +10,7 @@ Admin backend แยกจาก public site — ใช้ Supabase เก็บ
        └─ กด Publish → ดาวน์โหลด data.js → commit + push → public site อัปเดต
 ```
 
-Public site (`/index.html`) ยังคงเป็น static อ่าน `data.js` ไม่แตะ Supabase
+Public site (`/app.html` — มี landing screen ที่ `/index.html` คั่นก่อน) ยังคงเป็น static อ่าน `data.js` ไม่แตะ Supabase
 — ทำให้เร็ว, ไม่กิน Supabase quota, ทำงาน offline ได้
 
 ## ตั้งค่าครั้งแรก (one-time)

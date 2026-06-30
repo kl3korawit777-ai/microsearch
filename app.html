@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Microsearch — คลังข้อมูลจุลชีววิทยา</title>
+<meta name="description" content="คลังอ้างอิงจุลชีพก่อโรค (แบคทีเรีย ไวรัส ปรสิต) เพื่อการศึกษา" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand">
+      <img src="logo.png" alt="Microsearch" class="brand-logo" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" />
+      <div class="brand-fallback" style="display:none;align-items:center;gap:12px">
+        <div class="logo">M</div>
+        <div>
+          <h1>Microsearch</h1>
+          <p class="tagline">คลังอ้างอิงจุลชีพก่อโรค</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="search-box">
+      <input id="search" type="search" placeholder="ค้นหาเชื้อ เช่น Staphylococcus, HIV, พยาธิใบไม้..." autocomplete="off" />
+      <span class="search-count" id="searchCount"></span>
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside class="sidebar">
+      <h2>หมวดหมู่</h2>
+      <nav id="categoryNav"></nav>
+      <button id="resetBtn" class="reset-btn">↺ ล้างตัวกรอง</button>
+    </aside>
+
+    <section class="content">
+      <div class="content-header">
+        <div class="breadcrumb" id="breadcrumb">ทั้งหมด</div>
+      </div>
+      <div id="grid" class="grid"></div>
+      <div id="emptyState" class="empty" hidden>
+        <div class="empty-icon">🔍</div>
+        <p>ไม่พบข้อมูลที่ตรงกับการค้นหา</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- View Modal -->
+  <div id="viewModal" class="modal" hidden onclick="if(event.target===this)closeModal('viewModal')">
+    <div class="modal-card">
+      <button type="button" class="close-btn" onclick="closeModal('viewModal')" aria-label="ปิด">×</button>
+      <div id="viewModalBody"></div>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <p>© Microsearch · เพื่อการศึกษา</p>
+  </footer>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
